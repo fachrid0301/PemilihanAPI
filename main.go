@@ -1,15 +1,22 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	controllers "PemilihanAPI/Controllers"
+	db "PemilihanAPI/DB"
+
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	http.HandleFunc("/", loginPage)
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/dashboard1", dashboard1)
-	http.HandleFunc("/dashboard2", dashboard2)
-	fmt.Println("Server running at http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	db.Connect()
+
+	e := echo.New()
+
+	e.POST("/register", controllers.Register)
+	e.POST("/login", controllers.Login)
+
+	// Kalau masih mau endpoint profile tanpa proteksi, bisa:
+	// e.GET("/profile", controllers.Profile)
+
+	e.Logger.Fatal(e.Start(":8080"))
 }
