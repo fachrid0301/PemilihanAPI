@@ -3,63 +3,97 @@ package controllers
 import (
 	"net/http"
 
-	"PemilihanAPI/DB"
-	"PemilihanAPI/Model"
+	services "PemilihanAPI/Services"
+	types "PemilihanAPI/Types"
 
 	"github.com/labstack/echo/v4"
-	"golang.org/x/crypto/bcrypt"
 )
 
-func Register(c echo.Context) error {
-	username := c.FormValue("username")
-	email := c.FormValue("email")
-	password := c.FormValue("password")
-	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	_, err := db.DB.Exec(
-		"INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-		username, email, string(hash),
-	)
+var authService services.AuthService
 
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"message": "Username atau Email sudah terdaftar",
+// Init initializes the auth service
+func Init(svc services.AuthService) {
+	authService = svc
+}
+
+// Register menangani request register
+func Register(c echo.Context) error {
+	var req types.RegisterRequest
+	// Try to bind JSON/body first. If bind fails or fields missing, fallback to form/query params.
+	_ = c.Bind(&req)
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		// fallback to query or form values
+		if req.Username == "" {
+			req.Username = c.FormValue("username")
+			if req.Username == "" {
+				req.Username = c.QueryParam("username")
+			}
+		}
+		if req.Email == "" {
+			req.Email = c.FormValue("email")
+			if req.Email == "" {
+				req.Email = c.QueryParam("email")
+			}
+		}
+		if req.Password == "" {
+			req.Password = c.FormValue("password")
+			if req.Password == "" {
+				req.Password = c.QueryParam("password")
+			}
+		}
+	}
+	// basic validation
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		return c.JSON(http.StatusBadRequest, types.ErrorResponse{
+			Message: "Data tidak valid",
 		})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{
-		"message": "Register berhasil",
+	err := authService.Register(req)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.ErrorResponse{
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusCreated, types.AuthResponse{
+		Message: "Register berhasil",
 	})
 }
 
+// Login menangani request login
 func Login(c echo.Context) error {
-	username := c.FormValue("username")
-	password := c.FormValue("password")
+	var req types.LoginRequest
+	_ = c.Bind(&req)
+	if req.Username == "" || req.Password == "" {
+		if req.Username == "" {
+			req.Username = c.FormValue("username")
+			if req.Username == "" {
+				req.Username = c.QueryParam("username")
+			}
+		}
+		if req.Password == "" {
+			req.Password = c.FormValue("password")
+			if req.Password == "" {
+				req.Password = c.QueryParam("password")
+			}
+		}
+	}
+	if req.Username == "" || req.Password == "" {
+		return c.JSON(http.StatusBadRequest, types.ErrorResponse{
+			Message: "Data tidak valid",
+		})
+	}
 
-	var user models.User
-	err := db.DB.QueryRow(
-		"SELECT id, username, email, password, created_at FROM users WHERE username = ?",
-		username,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt)
+	userData, err := authService.Login(req)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"message": "Username atau Email tidak ditemukan",
+		return c.JSON(http.StatusUnauthorized, types.ErrorResponse{
+			Message: err.Error(),
 		})
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"message": "Password salah",
-		})
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "Login berhasil",
-		"user": map[string]interface{}{
-			"id":         user.ID,
-			"username":   user.Username,
-			"email":      user.Email,
-			"created_at": user.CreatedAt,
-		},
+	return c.JSON(http.StatusOK, types.AuthResponse{
+		Message: "Login berhasil",
+		User:    userData,
 	})
-
 }

@@ -2,15 +2,23 @@ package db
 
 import (
 	"database/sql"
+	"log"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var DB *sql.DB
 
 func Connect() {
-	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/pemilihan")
+	var err error
+	DB, err = sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/pemilihan")
 	if err != nil {
-		panic(err)
+		log.Fatal("Gagal membuka koneksi database:", err)
 	}
-	DB = db
+
+	// Test koneksi database
+	if err = DB.Ping(); err != nil {
+		log.Fatal("Gagal ping database:", err)
+	}
+
+	log.Println("Koneksi database berhasil!")
 }
