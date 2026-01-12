@@ -44,7 +44,7 @@ INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `created_at`
 (1, '12345', '1234@gmail.com', '12345', 'user', '2026-01-07 03:31:52'),
 (2, '123', '123@gmail.com', '123@gmail.com', 'user', '2026-01-07 03:31:52'),
 (4, 'fachri', 'fachr@gmail.com', '$2a$10$FEY6xU6fj6kTRzDHmEBlhekz5IunSgJ/zgGgmpwZpd4mnkx.bWPgu', 'user', '2026-01-07 07:05:15'),
-(5, 'haidar', '', '$2a$10$4qqbjm97R/iZXoCzyvbwoO97F74J8ail.5qslNdlm3QO6prIHrs6C', 'user', '2026-01-11 07:56:15');
+(5, 'haidar', 'haidarfarin@gmail.com', '$2a$10$4qqbjm97R/iZXoCzyvbwoO97F74J8ail.5qslNdlm3QO6prIHrs6C', 'user', '2026-01-11 07:56:15');
 
 --
 -- Indexes for dumped tables
