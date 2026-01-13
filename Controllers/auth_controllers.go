@@ -19,29 +19,44 @@ func Init(svc services.AuthService) {
 // Register menangani request register
 func Register(c echo.Context) error {
 	var req types.RegisterRequest
-	// Try to bind JSON/body first. If bind fails or fields missing, fallback to form/query params.
+	
+	// Bind dari semua sumber (JSON, form, query)
 	_ = c.Bind(&req)
-	if req.Username == "" || req.Email == "" || req.Password == "" {
-		// fallback to query or form values
+	
+	// Fallback ke form/query params jika field masih kosong
+	if req.Username == "" {
+		req.Username = c.FormValue("username")
 		if req.Username == "" {
-			req.Username = c.FormValue("username")
-			if req.Username == "" {
-				req.Username = c.QueryParam("username")
-			}
-		}
-		if req.Email == "" {
-			req.Email = c.FormValue("email")
-			if req.Email == "" {
-				req.Email = c.QueryParam("email")
-			}
-		}
-		if req.Password == "" {
-			req.Password = c.FormValue("password")
-			if req.Password == "" {
-				req.Password = c.QueryParam("password")
-			}
+			req.Username = c.QueryParam("username")
 		}
 	}
+	if req.Email == "" {
+		req.Email = c.FormValue("email")
+		if req.Email == "" {
+			req.Email = c.QueryParam("email")
+		}
+	}
+	if req.Password == "" {
+		req.Password = c.FormValue("password")
+		if req.Password == "" {
+			req.Password = c.QueryParam("password")
+		}
+	}
+	
+	// Untuk role, ambil dari semua sumber dan prioritaskan yang ada
+	// Echo's Bind() seharusnya sudah mengambil dari JSON, tapi pastikan dengan fallback
+	roleFromForm := c.FormValue("role")
+	roleFromQuery := c.QueryParam("role")
+	
+	// Jika role dari bind kosong, gunakan dari form/query
+	if req.Role == "" {
+		if roleFromForm != "" {
+			req.Role = roleFromForm
+		} else if roleFromQuery != "" {
+			req.Role = roleFromQuery
+		}
+	}
+	// Jika role masih kosong setelah semua, akan jadi default "user" di service
 	// basic validation
 	if req.Username == "" || req.Email == "" || req.Password == "" {
 		return c.JSON(http.StatusBadRequest, types.ErrorResponse{

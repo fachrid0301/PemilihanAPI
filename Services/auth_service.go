@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	db "PemilihanAPI/DB"
 	models "PemilihanAPI/Model"
@@ -47,10 +48,25 @@ func (s *authService) Register(req types.RegisterRequest) error {
 		return errors.New("username atau email sudah terdaftar")
 	}
 
-	// Insert user ke database
+	// Set default role sebagai "user" jika tidak ada role yang diberikan
+	role := req.Role
+	// Trim whitespace jika ada
+	if role != "" {
+		role = strings.TrimSpace(role)
+	}
+	if role == "" {
+		role = "user"
+	}
+	
+	// Validasi role hanya boleh "user" atau "admin"
+	if role != "user" && role != "admin" {
+		return errors.New("role harus 'user' atau 'admin'")
+	}
+	
+	// Insert user ke database dengan role
 	_, err = s.db.Exec(
-		"INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-		req.Username, req.Email, string(hash),
+		"INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
+		req.Username, req.Email, string(hash), role,
 	)
 
 	if err != nil {
@@ -68,9 +84,9 @@ func (s *authService) Register(req types.RegisterRequest) error {
 func (s *authService) Login(req types.LoginRequest) (*types.UserData, error) {
 	var user models.User
 	err := s.db.QueryRow(
-		"SELECT id, username, email, password, created_at FROM users WHERE username = ? OR email = ?",
+		"SELECT id, username, email, password, role, created_at FROM users WHERE username = ? OR email = ?",
 		req.Username, req.Username,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -90,6 +106,7 @@ func (s *authService) Login(req types.LoginRequest) (*types.UserData, error) {
 		ID:        user.ID,
 		Username:  user.Username,
 		Email:     user.Email,
+		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
 	}, nil
 }
