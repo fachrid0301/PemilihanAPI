@@ -23,24 +23,36 @@ func main() {
 		log.Println("File .env berhasil dimuat")
 	}
 
+	// Connect DB
 	db.Connect()
 
-	// Initialize services after database connection
+	// Init services
 	authService := services.NewAuthService()
-	controllers.Init(authService)
+	userService := services.NewUserService()
 
+	// Init controllers
+	controllers.Init(authService)
+	controllers.InitVote(userService)
+
+	// Echo instance
 	e := echo.New()
 
+	// Middleware CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-    AllowOrigins: []string{"http://localhost:5173"},
-    AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
-    AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-}))
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+		},
+	}))
 
-	// Setup semua routes
+	// Setup routes
 	routes.SetupRoutes(e)
 
-	// Ambil port dari environment variable, default ke 8080
+	// Ambil port
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
