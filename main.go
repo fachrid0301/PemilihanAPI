@@ -29,7 +29,18 @@ func main() {
 	authService := services.NewAuthService()
 	controllers.Init(authService)
 
+	kandidatService := services.NewKandidatService()
+	controllers.InitKandidat(kandidatService)
+
 	e := echo.New()
+
+	// Middleware untuk logging request dan response
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "${time_rfc3339} | ${status} | ${method} ${uri} | ${latency_human} | ${error}\n",
+	}))
+
+	// Middleware untuk recover dari panic
+	e.Use(middleware.Recover())
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
     AllowOrigins: []string{"http://localhost:5173"},
