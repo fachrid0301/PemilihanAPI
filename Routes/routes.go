@@ -21,5 +21,10 @@ func SetupRoutes(e *echo.Echo) {
 	e.GET("/kandidat/:id", controllers.GetKandidatByID)
 	e.PUT("/kandidat/:id", controllers.UpdateKandidat)
 	e.DELETE("/kandidat/:id", controllers.DeleteKandidat)
+
+	// Voting routes
+	e.POST("/voting", controllers.Vote)           // user melakukan voting
+	e.GET("/voting", controllers.GetAllVoting)    // list semua voting (admin)
+	e.GET("/voting/result", controllers.GetVotingResult) // rekap hasil voting per kandidat
 }
 

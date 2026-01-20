@@ -32,6 +32,9 @@ func main() {
 	kandidatService := services.NewKandidatService()
 	controllers.InitKandidat(kandidatService)
 
+	votingService := services.NewVotingService()
+	controllers.InitVoting(votingService)
+
 	e := echo.New()
 
 	// Middleware untuk logging request dan response

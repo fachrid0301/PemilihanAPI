@@ -365,3 +365,235 @@ fetch('http://localhost:8080/kandidat/1', {
 3. **Update Partial**: Bisa update hanya beberapa field saja
 4. **Hapus Foto**: Kirim `"foto": ""` untuk menghapus foto (set menjadi NULL)
 5. **ID**: `id_kandidat` adalah auto-increment, tidak perlu dikirim saat create
+
+---
+
+## 6. POST /voting - User Melakukan Voting
+
+### Request
+**URL:** `POST http://localhost:8080/voting`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body (JSON):**
+```json
+{
+  "id_user": 3,
+  "id_kandidat": 2
+}
+```
+
+### Response Success (201 Created)
+```json
+{
+  "message": "Voting berhasil",
+  "data": {
+    "id_voting": 1,
+    "id_user": 3,
+    "id_kandidat": 2,
+    "waktu_voting": "2026-01-20 10:15:00"
+  }
+}
+```
+
+### Response Error (400 Bad Request)
+
+**User sudah voting:**
+```json
+{
+  "message": "user sudah melakukan voting"
+}
+```
+
+**User tidak aktif:**
+```json
+{
+  "message": "user tidak aktif"
+}
+```
+
+**Hanya user yang bisa voting (admin tidak bisa):**
+```json
+{
+  "message": "hanya user yang dapat melakukan voting"
+}
+```
+
+**Kandidat tidak ditemukan:**
+```json
+{
+  "message": "kandidat tidak ditemukan"
+}
+```
+
+**ID tidak valid:**
+```json
+{
+  "message": "id_user wajib diisi dan harus berupa angka yang valid"
+}
+```
+
+### Contoh Menggunakan cURL
+```bash
+curl -X POST http://localhost:8080/voting \
+  -H "Content-Type: application/json" \
+  -d "{\"id_user\":3,\"id_kandidat\":2}"
+```
+
+### Contoh Menggunakan JavaScript (Fetch API)
+```javascript
+fetch('http://localhost:8080/voting', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    id_user: 3,
+    id_kandidat: 2
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+```
+
+---
+
+## 7. GET /voting - Get All Voting (Admin)
+
+### Request
+**URL:** `GET http://localhost:8080/voting`
+
+### Response Success (200 OK)
+```json
+{
+  "message": "Berhasil mengambil data voting",
+  "data": [
+    {
+      "id_voting": 1,
+      "id_user": 3,
+      "id_kandidat": 2,
+      "waktu_voting": "2026-01-20 10:15:00"
+    },
+    {
+      "id_voting": 2,
+      "id_user": 4,
+      "id_kandidat": 1,
+      "waktu_voting": "2026-01-20 10:17:22"
+    }
+  ]
+}
+```
+
+---
+
+## 8. GET /voting/result - Get Hasil Voting
+
+### Request
+**URL:** `GET http://localhost:8080/voting/result`
+
+### Response Success (200 OK)
+```json
+{
+  "message": "Berhasil mengambil hasil voting",
+  "data": [
+    {
+      "id_kandidat": 1,
+      "nomor_urut": 1,
+      "nama_ketua": "Calon 1",
+      "nama_wakil": "Wakil 1",
+      "jumlah_suara": 10
+    },
+    {
+      "id_kandidat": 2,
+      "nomor_urut": 2,
+      "nama_ketua": "Calon 2",
+      "nama_wakil": "Wakil 2",
+      "jumlah_suara": 7
+    }
+  ]
+}
+```
+
+---
+
+## Cara Test Voting Lengkap
+
+### Langkah 1: Pastikan User Siap
+Di database, pastikan ada user dengan:
+- `role = 'user'` (bukan admin)
+- `status = 'aktif'` (bukan sudah_voting atau nonaktif)
+
+Contoh query:
+```sql
+SELECT id, username, role, status FROM users WHERE role = 'user' AND status = 'aktif';
+```
+
+### Langkah 2: Pastikan Ada Kandidat
+```sql
+SELECT id_kandidat, nomor_urut, nama_ketua FROM kandidat;
+```
+
+### Langkah 3: Test Voting
+**Request:**
+```json
+POST http://localhost:8080/voting
+Content-Type: application/json
+
+{
+  "id_user": 3,
+  "id_kandidat": 2
+}
+```
+
+**Jika berhasil:**
+- Response: `"Voting berhasil"`
+- Di database: 
+  - Tabel `voting` ada record baru
+  - Tabel `users` → `status` user berubah jadi `'sudah_voting'`
+
+**Jika error 400:**
+- Cek log di terminal server untuk detail error
+- Pastikan `id_user` dan `id_kandidat` adalah angka valid
+- Pastikan user `role = 'user'` dan `status = 'aktif'`
+- Pastikan user belum pernah voting sebelumnya
+
+### Langkah 4: Test Voting Kedua (Harus Gagal)
+Coba voting lagi dengan user yang sama → harus dapat error `"user sudah melakukan voting"`
+
+### Langkah 5: Cek Hasil Voting
+```bash
+GET http://localhost:8080/voting/result
+```
+
+---
+
+## Troubleshooting Error 400 Bad Request
+
+1. **Pastikan format JSON benar:**
+   ```json
+   {
+     "id_user": 3,        // angka, bukan string
+     "id_kandidat": 2    // angka, bukan string
+   }
+   ```
+
+2. **Pastikan Content-Type header:**
+   ```
+   Content-Type: application/json
+   ```
+
+3. **Cek log server** untuk melihat error detail:
+   - Buka terminal tempat server berjalan
+   - Lihat log yang muncul saat request voting
+
+4. **Pastikan user ada dan valid:**
+   - User harus ada di database
+   - `role` harus `'user'` (bukan `'admin'`)
+   - `status` harus `'aktif'` (bukan `'sudah_voting'` atau `'nonaktif'`)
+
+5. **Pastikan kandidat ada:**
+   - `id_kandidat` harus ada di tabel `kandidat`
